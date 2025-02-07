@@ -25,17 +25,26 @@ struct ContentView: View {
     }
 }
 
+// 改變文字顯示，當數字變化，有質數或沒有質數
+private func ordinal(_ n: Int) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .ordinal
+    return formatter.string(for: n) ?? ""
+}
+
 struct CounterView: View {
     @State var count: Int = 0
     
     var body: some View {
+        //self.$count // Binding<Int>
+        
         VStack{
             HStack{
-                Button(action: {}) {
+                Button(action: { self.count -= 1 }) {
                     Text("-")
                 }
                 Text("\(self.count)")
-                Button(action: {}) {
+                Button(action: { self.count += 1}) {
                     Text("+")
                 }
             }
@@ -43,7 +52,7 @@ struct CounterView: View {
                 Text("Is this prime?")
             }
             Button(action: {}) {
-                Text("What is the 0th prime?")
+                Text("What is the \(ordinal(self.count))th prime?")
             }
         }
         .font(.title)
