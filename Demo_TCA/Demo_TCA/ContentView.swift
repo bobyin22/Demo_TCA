@@ -6,13 +6,16 @@
 //
 
 import SwiftUI
+import Combine
 
 struct ContentView: View {
+    @ObservedObject var state: AppState // 從 CounterView 提取出來
+
     var body: some View {
         
         NavigationView {
             List {
-                NavigationLink(destination: CounterView()) {
+                NavigationLink(destination: CounterView(state: self.state)) {
                     Text("Counter demo")
                 }
                 NavigationLink(destination: EmptyView()) {
@@ -32,19 +35,34 @@ private func ordinal(_ n: Int) -> String {
     return formatter.string(for: n) ?? ""
 }
 
+//BindableObject
+class AppState: ObservableObject {   // ❌舊教學是 BindableObject ✅新教學是 ObservableObject
+    @Published var count = 0
+    
+//    var count = 0 {                // ❌舊教學 還需要自己寫 didSet ✅新教學是 @Published
+//        didSet {
+//            self.didChange.send()
+//        }
+//    }
+    
+    //var didChange: AppState.PublisherType ❌舊教學
+    //var didChange: PassthroughSubject<Void, Never> ❌舊教學
+}
+
 struct CounterView: View {
-    @State var count: Int = 0
+    //@ObjectBinding var count: Int  // ❌舊教學是 @ObjectBinding ✅新教學是 @ObservedObject
+    @ObservedObject var state: AppState
     
     var body: some View {
         //self.$count // Binding<Int>
         
         VStack{
             HStack{
-                Button(action: { self.count -= 1 }) {
+                Button(action: { self.state.count -= 1 }) {
                     Text("-")
                 }
-                Text("\(self.count)")
-                Button(action: { self.count += 1}) {
+                Text("\(self.state.count)")
+                Button(action: { self.state.count += 1}) {
                     Text("+")
                 }
             }
@@ -52,7 +70,7 @@ struct CounterView: View {
                 Text("Is this prime?")
             }
             Button(action: {}) {
-                Text("What is the \(ordinal(self.count))th prime?")
+                Text("What is the \(ordinal(self.state.count))th prime?")
             }
         }
         .font(.title)
@@ -61,6 +79,5 @@ struct CounterView: View {
 }
 
 #Preview {
-    ContentView()
-    //CounterView()
+    ContentView(state: AppState())
 }
