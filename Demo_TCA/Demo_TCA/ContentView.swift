@@ -9,10 +9,9 @@ import SwiftUI
 import Combine
 
 struct ContentView: View {
-    @ObservedObject var state: AppState // 從 CounterView 提取出來
+    @ObservedObject var state: AppState
 
     var body: some View {
-        
         NavigationView {
             List {
                 NavigationLink(destination: CounterView(state: self.state)) {
@@ -35,27 +34,15 @@ private func ordinal(_ n: Int) -> String {
     return formatter.string(for: n) ?? ""
 }
 
-//BindableObject
-class AppState: ObservableObject {   // ❌舊教學是 BindableObject ✅新教學是 ObservableObject
+class AppState: ObservableObject {
     @Published var count = 0
-    
-//    var count = 0 {                // ❌舊教學 還需要自己寫 didSet ✅新教學是 @Published
-//        didSet {
-//            self.didChange.send()
-//        }
-//    }
-    
-    //var didChange: AppState.PublisherType ❌舊教學
-    //var didChange: PassthroughSubject<Void, Never> ❌舊教學
 }
 
 struct CounterView: View {
-    //@ObjectBinding var count: Int  // ❌舊教學是 @ObjectBinding ✅新教學是 @ObservedObject
     @ObservedObject var state: AppState
-    
+    @State var isPrimeModalShown: Bool = false
+
     var body: some View {
-        //self.$count // Binding<Int>
-        
         VStack{
             HStack{
                 Button(action: { self.state.count -= 1 }) {
@@ -66,7 +53,9 @@ struct CounterView: View {
                     Text("+")
                 }
             }
-            Button(action: {}) {
+            Button(action: {
+                self.isPrimeModalShown = true
+            }) {
                 Text("Is this prime?")
             }
             Button(action: {}) {
@@ -75,6 +64,49 @@ struct CounterView: View {
         }
         .font(.title)
         .navigationTitle("Counter demo")
+        
+        // ✅新寫法
+        .sheet(isPresented: $isPrimeModalShown) {
+            IsPrimeModalView(state: state)
+        }
+        
+        // ❌舊寫法
+//        .presentation(
+//            self.isPrimeModalShown
+//            ? Modal(
+//                IsPrimeModalView(state: self.state),
+//                onDismiss: { self.isPrimeModalShown = false }
+//                )
+//            : nil)
+    }
+}
+
+private func isPrime (_ p: Int) -> Bool {
+    if p <= 1 { return false }
+    if p <= 3 { return true }
+    for i in 2...Int(sqrt(Float(p))) {
+        if p % i == 0 { return false }
+    }
+    return true
+}
+
+struct IsPrimeModalView: View {
+    //@ObjectBinding var state: AppState // ❌舊寫法
+    @ObservedObject var state: AppState
+
+    
+    var body: some View {
+        VStack {
+            if isPrime(self.state.count) {
+                Text("\(self.state.count) is prime 🎉")
+            } else {
+                Text("\(self.state.count) is prime 😥")
+            }
+            Text("I don't know if \(self.state.count) is prime")
+            Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/, label: {
+                Text("Save/remove to/from favorite primes")
+            })
+        }
     }
 }
 
