@@ -39,10 +39,18 @@ class AppState: ObservableObject {
     @Published var favoritePrime: [Int] = []
 }
 
+struct PrimeAlert: Identifiable {
+  let prime: Int
+
+  var id: Int { self.prime }
+}
+
 struct CounterView: View {
     @ObservedObject var state: AppState
     @State var isPrimeModalShown: Bool = false
-
+    //@State var alertNthPrime: Int?
+    @State var alertNthPrime: PrimeAlert?
+    
     var body: some View {
         VStack{
             HStack{
@@ -59,26 +67,45 @@ struct CounterView: View {
             }) {
                 Text("Is this prime?")
             }
-            Button(action: {}) {
+            Button(action: {
+                nthPrime(self.state.count) { prime in
+                    if let prime = prime {
+                        self.alertNthPrime = PrimeAlert(prime: prime)
+                    }
+                }
+            }) {
                 Text("What is the \(ordinal(self.state.count))th prime?")
             }
         }
         .font(.title)
         .navigationTitle("Counter demo")
-        
+
         // ✅新寫法
         .sheet(isPresented: $isPrimeModalShown) {
             IsPrimeModalView(state: state)
         }
+//                ❌舊寫法
+//                .presentation(
+//                    self.isPrimeModalShown
+//                    ? Modal(
+//                        IsPrimeModalView(state: self.state),
+//                        onDismiss: { self.isPrimeModalShown = false }
+//                        )
+//                    : nil)
         
-        // ❌舊寫法
-//        .presentation(
-//            self.isPrimeModalShown
-//            ? Modal(
-//                IsPrimeModalView(state: self.state),
-//                onDismiss: { self.isPrimeModalShown = false }
-//                )
-//            : nil)
+        
+        .alert(item: self.$alertNthPrime) { alert in
+          Alert(
+            title: Text("The \(ordinal(self.state.count)) prime is \(alert.prime)"),
+            dismissButton: .default(Text("Ok"))
+          )
+        }
+//        ❌舊寫法
+//        .presentation(self.$alertNthPrime) { n in
+//            Alert(title: Text("The \(ordinal(self.state.count)) prime is \(n)"),
+//                  dismissButton: .destructive(Text("Ok"))
+//            )
+//        }
     }
 }
 
@@ -115,6 +142,62 @@ struct IsPrimeModalView: View {
         }
     }
 }
+
+// MARK: API
+struct WolframAlphaResult: Decodable {
+  let queryresult: QueryResult
+
+  struct QueryResult: Decodable {
+    let pods: [Pod]
+
+    struct Pod: Decodable {
+      let primary: Bool?
+      let subpods: [SubPod]
+
+      struct SubPod: Decodable {
+        let plaintext: String
+      }
+    }
+  }
+}
+
+
+func wolframAlpha(query: String, callback: @escaping (WolframAlphaResult?) -> Void) -> Void {
+  var components = URLComponents(string: "https://api.wolframalpha.com/v2/query")!
+  components.queryItems = [
+    URLQueryItem(name: "input", value: query),
+    URLQueryItem(name: "format", value: "plaintext"),
+    URLQueryItem(name: "output", value: "JSON"),
+    URLQueryItem(name: "appid", value: wolframAlphaApiKey), //這裡換上自己註冊的Api key
+  ]
+
+
+  URLSession.shared.dataTask(with: components.url(relativeTo: nil)!) { data, response, error in
+    callback(
+      data
+        .flatMap { try? JSONDecoder().decode(WolframAlphaResult.self, from: $0) }
+    )
+  }
+  .resume()
+}
+
+func nthPrime(_ n: Int, callback: @escaping (Int?) -> Void) -> Void {
+  wolframAlpha(query: "prime \(n)") { result in
+    callback(
+      result
+        .flatMap {
+          $0.queryresult
+            .pods
+            .first(where: { $0.primary == .some(true) })?
+            .subpods
+            .first?
+            .plaintext
+      }
+      .flatMap(Int.init)
+    )
+  }
+}
+
 
 #Preview {
     ContentView(state: AppState())
