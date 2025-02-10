@@ -36,6 +36,7 @@ private func ordinal(_ n: Int) -> String {
 
 class AppState: ObservableObject {
     @Published var count = 0
+    @Published var favoritePrime: [Int] = []
 }
 
 struct CounterView: View {
@@ -84,7 +85,7 @@ struct CounterView: View {
 private func isPrime (_ p: Int) -> Bool {
     if p <= 1 { return false }
     if p <= 3 { return true }
-    for i in 2...Int(sqrt(Float(p))) {
+    for i in 2...Int(sqrtf(Float(p))) {
         if p % i == 0 { return false }
     }
     return true
@@ -99,13 +100,18 @@ struct IsPrimeModalView: View {
         VStack {
             if isPrime(self.state.count) {
                 Text("\(self.state.count) is prime 🎉")
+                if self.state.favoritePrime.contains(self.state.count) {
+                    Button(action: { self.state.favoritePrime.removeAll(where: { $0 == self.state.count })}, label: {
+                        Text("Remove from favorite primes")
+                    })
+                } else {
+                    Button(action: { self.state.favoritePrime.append(self.state.count) }, label: {
+                        Text("Save to from favorite primes")
+                    })
+                }
             } else {
-                Text("\(self.state.count) is prime 😥")
+                Text("\(self.state.count) is not prime 😥")
             }
-            Text("I don't know if \(self.state.count) is prime")
-            Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/, label: {
-                Text("Save/remove to/from favorite primes")
-            })
         }
     }
 }
