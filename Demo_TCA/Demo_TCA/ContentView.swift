@@ -17,8 +17,8 @@ struct ContentView: View {
                 NavigationLink(destination: CounterView(state: self.state)) {
                     Text("Counter demo")
                 }
-                NavigationLink(destination: EmptyView()) {
-                    Text("Favorite primes ")
+                NavigationLink(destination: FavoritePrimeView(state: self.state)) {
+                    Text("Favorite primes")
                 }
             }
             .navigationTitle("State management")
@@ -36,7 +36,7 @@ private func ordinal(_ n: Int) -> String {
 
 class AppState: ObservableObject {
     @Published var count = 0
-    @Published var favoritePrime: [Int] = []
+    @Published var favoritePrimes: [Int] = []
 }
 
 struct PrimeAlert: Identifiable {
@@ -127,12 +127,12 @@ struct IsPrimeModalView: View {
         VStack {
             if isPrime(self.state.count) {
                 Text("\(self.state.count) is prime 🎉")
-                if self.state.favoritePrime.contains(self.state.count) {
-                    Button(action: { self.state.favoritePrime.removeAll(where: { $0 == self.state.count })}, label: {
+                if self.state.favoritePrimes.contains(self.state.count) {
+                    Button(action: { self.state.favoritePrimes.removeAll(where: { $0 == self.state.count })}, label: {
                         Text("Remove from favorite primes")
                     })
                 } else {
-                    Button(action: { self.state.favoritePrime.append(self.state.count) }, label: {
+                    Button(action: { self.state.favoritePrimes.append(self.state.count) }, label: {
                         Text("Save to from favorite primes")
                     })
                 }
@@ -171,6 +171,8 @@ func wolframAlpha(query: String, callback: @escaping (WolframAlphaResult?) -> Vo
     URLQueryItem(name: "appid", value: wolframAlphaApiKey), //這裡換上自己註冊的Api key
   ]
 
+    //wolframAlphaApiKey
+    //"JPLW25-XU846GVWT8"
 
   URLSession.shared.dataTask(with: components.url(relativeTo: nil)!) { data, response, error in
     callback(
@@ -196,6 +198,25 @@ func nthPrime(_ n: Int, callback: @escaping (Int?) -> Void) -> Void {
       .flatMap(Int.init)
     )
   }
+}
+
+// MARK: 存儲質數的View
+struct FavoritePrimeView: View {
+    @ObservedObject var state: AppState
+    
+    var body: some View {
+        List {
+            ForEach(self.state.favoritePrimes, id: \.self) { prime in
+                Text("\(prime)")
+            }
+            .onDelete { indexSet in
+                for index in indexSet {
+                    self.state.favoritePrimes.remove(at: index)
+                }
+            }
+        }
+        .navigationTitle("Favorite Primes")
+    }
 }
 
 
