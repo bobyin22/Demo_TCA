@@ -6,16 +6,21 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
 
 @main
 struct Demo_TCAApp: App {
-    @StateObject private var state = AppState()
-    
-    var body: some Scene {
-        WindowGroup {
-            ContentView(state: state)
+    // 添加靜態 store 屬性
+        static let store = Store(
+            initialState: CounterFeature.State(),
+            reducer: { CounterFeature()._printChanges() }
+        )
+        
+        var body: some Scene {
+            WindowGroup {
+                ContentView(store: Demo_TCAApp.store)
+            }
         }
-    }
 }
 
 /*
