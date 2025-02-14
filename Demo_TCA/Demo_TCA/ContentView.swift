@@ -9,6 +9,27 @@ import SwiftUI
 import Combine
 import ComposableArchitecture
 
+// MARK: - 基本概念解釋
+/// TCA 是一個單向數據流的架構：
+/// 使用者操作 -> 發送 Action -> Reducer 處理 -> 更新 State -> 畫面更新
+
+// MARK: - 數據傳遞的三種主要方式
+/// 1. @State：最簡單的狀態管理，適用於簡單的、僅在單一視圖內使用的數據
+/// 例如：@State private var count = 0
+
+/// 2. @Binding：用於在不同視圖之間傳遞和共享可變數據
+/// 例如：@Binding var count: Int
+
+/// 3. Store/ViewStore：TCA 的方式，用於管理複雜的狀態和動作
+/// 例如：let store: StoreOf<CounterFeature>
+
+///store 就像是一個大容器，存放所有數據和規則
+///viewStore 是用來和畫面互動的橋樑
+///binding 是用來處理雙向數據流的工具
+///get: 告訴畫面要顯示什麼
+///send: 告訴系統當數據改變時要做什麼
+
+
 // MARK: - 核心概念
 /// TCA 主要有四個重要的積木：
 /// 1. State (狀態) - 就像是遊戲的記分板，記錄所有數據
@@ -105,9 +126,14 @@ struct CounterFeature: Reducer {
     }
 }
 
+// MARK: PrimeAlert 是用來顯示 Alert（提示框）的資料結構
 struct PrimeAlert: Identifiable, Equatable {
+    // prime: 儲存要在 Alert 中顯示的質數值
     let prime: Int
     
+    /// id: 用來唯一識別這個 Alert
+    /// 因為 SwiftUI 的 .alert(item:) 修飾符需要 Identifiable 協議
+    /// 這裡直接使用 prime 數值作為 id，因為同一個數字不會重複出現
     var id: Int { self.prime }
 }
 
@@ -238,15 +264,21 @@ struct ContentView: View {
 }
 
 struct CounterView: View {
+    /// store 是整個功能的容器，包含了狀態和處理邏輯
     let store: StoreOf<CounterFeature>
     
     var body: some View {
+        /// WithViewStore 是一個特殊的容器，用來連接 UI 和數據
+        /// 它會觀察 store 中的變化，並在需要時更新畫面
         WithViewStore(store, observe: { $0 }) { viewStore in
             VStack {
                 HStack {
+                    /// 當按鈕被點擊時，發送一個 Action 到 store
                     Button("-") {
+                        /// viewStore.send() 用來發送 Action
                         viewStore.send(.decrementButtonTapped)
                     }
+                    /// 直接使用 viewStore 中的數據
                     Text("\(viewStore.count)")
                     Button("+") {
                         viewStore.send(.incrementButtonTapped)
@@ -261,17 +293,22 @@ struct CounterView: View {
             }
             .font(.title)
             .navigationTitle("Counter Demo")
+            
+            /// .sheet 是一個彈出視窗
+            /// viewStore.binding 用來創建雙向綁定
+            /// get: 從 viewStore 獲取值
+            /// send: 當值改變時發送什麼 Action
             .sheet(
                 isPresented: viewStore.binding(
-                    get: \.isPrimeModalShown,
-                    send: .primeModalDismissed
+                    get: \.isPrimeModalShown,   // 從 state 中獲取值
+                    send: .primeModalDismissed  // 當視窗關閉時發送這個 Action
                 )
             ) {
                 IsPrimeModalView(store: store)
             }
             .alert(
                 item: viewStore.binding(
-                    get: \.alertNthPrime,
+                    get: \.alertNthPrime,   /// 當 alertNthPrime 有值時
                     send: .alertDismissed
                 )
             ) { alert in
@@ -333,3 +370,8 @@ struct IsPrimeModalView: View {
     ContentView(store: Demo_TCAApp.store)
 }
 
+/*
+ 內容來源：
+ 2019 SwiftUI and State Management: Part 1、2、3
+ https://www.pointfree.co/episodes/ep66-swiftui-and-state-management-part-2
+ */
